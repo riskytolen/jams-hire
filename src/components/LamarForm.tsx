@@ -1,0 +1,682 @@
+"use client";
+
+import { useState, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import {
+  User,
+  MapPin,
+  Calendar,
+  Briefcase,
+  Phone,
+  Mail,
+  Heart,
+  Car,
+  IdCard,
+  Clock,
+  MapPinned,
+  GraduationCap,
+  FileText,
+  Upload,
+  AlertCircle,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+  Loader2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  ALLOWED_CV_TYPES,
+  MAX_CV_SIZE_MB,
+  MAX_CV_SIZE_BYTES,
+  PENDIDIKAN_OPTIONS,
+  POSISI_OPTIONS,
+  SIM_OPTIONS,
+  calculateAge,
+  isValidPhone,
+  type LamarPayload,
+} from "@/lib/validation";
+
+interface FormState {
+  nama: string;
+  tanggal_lahir: string;
+  alamat: string;
+  email: string;
+  no_hp: string;
+  pendidikan_terakhir: string;
+  posisi_dilamar: string;
+  pekerjaan_terakhir: string;
+  lama_kerja_terakhir: string;
+  daerah_kerja_terakhir: string;
+  status_pernikahan_pelamar: "Berkeluarga" | "Belum Berkeluarga" | "";
+  bisa_nyupir: boolean | null;
+  sim: string;
+  bersedia_shift: boolean | null;
+  bersedia_jabodetabek: boolean | null;
+  // honeypot — harus tetap kosong
+  hp_field: string;
+}
+
+const INITIAL_STATE: FormState = {
+  nama: "",
+  tanggal_lahir: "",
+  alamat: "",
+  email: "",
+  no_hp: "",
+  pendidikan_terakhir: "",
+  posisi_dilamar: "",
+  pekerjaan_terakhir: "",
+  lama_kerja_terakhir: "",
+  daerah_kerja_terakhir: "",
+  status_pernikahan_pelamar: "",
+  bisa_nyupir: null,
+  sim: "",
+  bersedia_shift: null,
+  bersedia_jabodetabek: null,
+  hp_field: "",
+};
+
+export default function LamarForm() {
+  const router = useRouter();
+  const [state, setState] = useState<FormState>(INITIAL_STATE);
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setState((s) => ({ ...s, [key]: value }));
+    if (errors[key as string]) {
+      setErrors((e) => {
+        const n = { ...e };
+        delete n[key as string];
+        return n;
+      });
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setErrors((er) => {
+      const n = { ...er };
+      delete n.cv;
+      return n;
+    });
+    if (!file) {
+      setCvFile(null);
+      return;
+    }
+    if (!ALLOWED_CV_TYPES.includes(file.type)) {
+      setErrors((er) => ({ ...er, cv: "Hanya file PDF atau JPG/PNG yang diperbolehkan." }));
+      setCvFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    if (file.size > MAX_CV_SIZE_BYTES) {
+      setErrors((er) => ({ ...er, cv: `Ukuran file maksimal ${MAX_CV_SIZE_MB} MB.` }));
+      setCvFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    setCvFile(file);
+  };
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+
+    if (!state.nama.trim()) errs.nama = "Nama wajib diisi.";
+    if (!state.tanggal_lahir) {
+      errs.tanggal_lahir = "Tanggal lahir wajib diisi.";
+    } else {
+      const age = calculateAge(state.tanggal_lahir);
+      if (age < 17) errs.tanggal_lahir = "Umur minimal 17 tahun.";
+      if (age > 70) errs.tanggal_lahir = "Tanggal lahir tidak valid.";
+    }
+    if (!state.alamat.trim()) errs.alamat = "Alamat wajib diisi.";
+    if (!state.no_hp.trim()) {
+      errs.no_hp = "No telepon wajib diisi.";
+    } else if (!isValidPhone(state.no_hp)) {
+      errs.no_hp = "Format no telepon tidak valid.";
+    }
+    if (state.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.email)) {
+      errs.email = "Format email tidak valid.";
+    }
+    if (!state.pendidikan_terakhir) errs.pendidikan_terakhir = "Pendidikan terakhir wajib dipilih.";
+    if (!state.posisi_dilamar) errs.posisi_dilamar = "Posisi yang dilamar wajib dipilih.";
+    if (state.bisa_nyupir === null) errs.bisa_nyupir = "Wajib dipilih.";
+    if (state.bersedia_shift === null) errs.bersedia_shift = "Wajib dipilih.";
+    if (state.bersedia_jabodetabek === null) errs.bersedia_jabodetabek = "Wajib dipilih.";
+
+    setErrors(errs);
+
+    // Scroll ke field error pertama
+    if (Object.keys(errs).length > 0) {
+      setTimeout(() => {
+        const firstField = Object.keys(errs)[0];
+        document.querySelector(`[data-field="${firstField}"]`)?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 50);
+    }
+
+    return Object.keys(errs).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError(null);
+
+    if (!validate()) return;
+
+    // Anti-bot: honeypot harus kosong
+    if (state.hp_field) {
+      // Diam-diam fail — jangan kasih tahu bot
+      router.push("/sukses");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const fd = new FormData();
+        const payload: LamarPayload = {
+          nama: state.nama.trim(),
+          tanggal_lahir: state.tanggal_lahir,
+          alamat: state.alamat.trim(),
+          email: state.email.trim() || undefined,
+          no_hp: state.no_hp.trim(),
+          pendidikan_terakhir: state.pendidikan_terakhir,
+          posisi_dilamar: state.posisi_dilamar,
+          pekerjaan_terakhir: state.pekerjaan_terakhir.trim() || undefined,
+          lama_kerja_terakhir: state.lama_kerja_terakhir.trim() || undefined,
+          daerah_kerja_terakhir: state.daerah_kerja_terakhir.trim() || undefined,
+          status_pernikahan_pelamar: state.status_pernikahan_pelamar || undefined,
+          bisa_nyupir: state.bisa_nyupir!,
+          sim: state.sim || undefined,
+          bersedia_shift: state.bersedia_shift!,
+          bersedia_jabodetabek: state.bersedia_jabodetabek!,
+        };
+        fd.append("payload", JSON.stringify(payload));
+        if (cvFile) fd.append("cv", cvFile);
+
+        const res = await fetch("/api/lamar", { method: "POST", body: fd });
+        const json = await res.json();
+
+        if (!res.ok) {
+          if (res.status === 429) {
+            setSubmitError(
+              `Terlalu banyak percobaan. Coba lagi dalam ${json.retryAfterSec ?? 60} detik.`,
+            );
+          } else if (json.fieldErrors && Array.isArray(json.fieldErrors)) {
+            const errs: Record<string, string> = {};
+            for (const e of json.fieldErrors as Array<{ field: string; message: string }>) {
+              errs[e.field] = e.message;
+            }
+            setErrors(errs);
+            setSubmitError("Periksa kembali isian form Anda.");
+          } else {
+            setSubmitError(json.error || "Gagal mengirim lamaran. Silakan coba lagi.");
+          }
+          return;
+        }
+
+        const params = new URLSearchParams();
+        if (json.id) params.set("id", String(json.id));
+        if (state.nama) params.set("nama", state.nama);
+        router.push(`/sukses?${params.toString()}`);
+      } catch (err) {
+        setSubmitError(
+          err instanceof Error
+            ? `Terjadi kesalahan: ${err.message}`
+            : "Terjadi kesalahan jaringan. Silakan coba lagi.",
+        );
+      }
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-8" noValidate>
+      {/* ─── Section: Data Diri ─── */}
+      <FormSection
+        icon={User}
+        title="Data Diri"
+        description="Isi sesuai dengan KTP."
+      >
+        <Field label="Nama Lengkap" required name="nama" error={errors.nama}>
+          <input
+            type="text"
+            className={cn("input-field", errors.nama && "has-error")}
+            placeholder="Contoh: Budi Santoso"
+            value={state.nama}
+            onChange={(e) => update("nama", e.target.value)}
+            maxLength={200}
+            autoComplete="name"
+          />
+        </Field>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field
+            label="Tanggal Lahir"
+            required
+            name="tanggal_lahir"
+            error={errors.tanggal_lahir}
+            hint={
+              state.tanggal_lahir && !errors.tanggal_lahir
+                ? `Umur: ${calculateAge(state.tanggal_lahir)} tahun`
+                : undefined
+            }
+            icon={Calendar}
+          >
+            <input
+              type="date"
+              className={cn("input-field", errors.tanggal_lahir && "has-error")}
+              value={state.tanggal_lahir}
+              onChange={(e) => update("tanggal_lahir", e.target.value)}
+              max={new Date().toISOString().slice(0, 10)}
+            />
+          </Field>
+
+          <Field
+            label="Status Pernikahan"
+            name="status_pernikahan_pelamar"
+            icon={Heart}
+          >
+            <select
+              className="input-field"
+              value={state.status_pernikahan_pelamar}
+              onChange={(e) =>
+                update(
+                  "status_pernikahan_pelamar",
+                  e.target.value as FormState["status_pernikahan_pelamar"],
+                )
+              }
+            >
+              <option value="">— Pilih —</option>
+              <option value="Belum Berkeluarga">Belum Berkeluarga</option>
+              <option value="Berkeluarga">Berkeluarga</option>
+            </select>
+          </Field>
+        </div>
+
+        <Field label="Alamat Tempat Tinggal" required name="alamat" error={errors.alamat} icon={MapPin}>
+          <textarea
+            className={cn("input-field", errors.alamat && "has-error")}
+            placeholder="Alamat lengkap (RT/RW, kelurahan, kota)"
+            value={state.alamat}
+            onChange={(e) => update("alamat", e.target.value)}
+            rows={2}
+            maxLength={500}
+          />
+        </Field>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="No Telepon (WhatsApp)" required name="no_hp" error={errors.no_hp} icon={Phone}>
+            <input
+              type="tel"
+              className={cn("input-field", errors.no_hp && "has-error")}
+              placeholder="08xxxxxxxxxx"
+              value={state.no_hp}
+              onChange={(e) => update("no_hp", e.target.value)}
+              autoComplete="tel"
+              maxLength={20}
+            />
+          </Field>
+
+          <Field label="Email (opsional)" name="email" error={errors.email} icon={Mail}>
+            <input
+              type="email"
+              className={cn("input-field", errors.email && "has-error")}
+              placeholder="nama@email.com"
+              value={state.email}
+              onChange={(e) => update("email", e.target.value)}
+              autoComplete="email"
+              maxLength={200}
+            />
+          </Field>
+        </div>
+      </FormSection>
+
+      {/* ─── Section: Latar Belakang ─── */}
+      <FormSection
+        icon={GraduationCap}
+        title="Latar Belakang"
+        description="Pendidikan dan posisi yang ingin dilamar."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field
+            label="Pendidikan Terakhir"
+            required
+            name="pendidikan_terakhir"
+            error={errors.pendidikan_terakhir}
+          >
+            <select
+              className={cn("input-field", errors.pendidikan_terakhir && "has-error")}
+              value={state.pendidikan_terakhir}
+              onChange={(e) => update("pendidikan_terakhir", e.target.value)}
+            >
+              <option value="">— Pilih pendidikan —</option>
+              {PENDIDIKAN_OPTIONS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field
+            label="Posisi yang Dilamar"
+            required
+            name="posisi_dilamar"
+            error={errors.posisi_dilamar}
+            icon={Briefcase}
+          >
+            <select
+              className={cn("input-field", errors.posisi_dilamar && "has-error")}
+              value={state.posisi_dilamar}
+              onChange={(e) => update("posisi_dilamar", e.target.value)}
+            >
+              <option value="">— Pilih posisi —</option>
+              {POSISI_OPTIONS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
+      </FormSection>
+
+      {/* ─── Section: Pengalaman Kerja ─── */}
+      <FormSection
+        icon={Briefcase}
+        title="Pengalaman Kerja"
+        description="Boleh dikosongkan jika belum pernah bekerja."
+      >
+        <Field label="Pekerjaan Terakhir" name="pekerjaan_terakhir">
+          <input
+            type="text"
+            className="input-field"
+            placeholder="Contoh: Driver gojek, Helper warehouse"
+            value={state.pekerjaan_terakhir}
+            onChange={(e) => update("pekerjaan_terakhir", e.target.value)}
+            maxLength={200}
+          />
+        </Field>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field
+            label="Lama Bekerja"
+            name="lama_kerja_terakhir"
+            icon={Clock}
+            hint="Mis. 2 tahun, 6 bulan"
+          >
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Mis. 2 tahun"
+              value={state.lama_kerja_terakhir}
+              onChange={(e) => update("lama_kerja_terakhir", e.target.value)}
+              maxLength={100}
+            />
+          </Field>
+
+          <Field
+            label="Daerah Pekerjaan Terakhir"
+            name="daerah_kerja_terakhir"
+            icon={MapPinned}
+          >
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Mis. Jakarta Timur"
+              value={state.daerah_kerja_terakhir}
+              onChange={(e) => update("daerah_kerja_terakhir", e.target.value)}
+              maxLength={200}
+            />
+          </Field>
+        </div>
+      </FormSection>
+
+      {/* ─── Section: Kompetensi & Kesediaan ─── */}
+      <FormSection
+        icon={Sparkles}
+        title="Kompetensi & Kesediaan"
+        description="Pertanyaan singkat untuk pencocokan posisi."
+      >
+        <Field label="Bisa Mengemudi (Nyupir)?" required name="bisa_nyupir" error={errors.bisa_nyupir} icon={Car}>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => update("bisa_nyupir", true)}
+              className={cn("toggle-pill", state.bisa_nyupir === true && "is-active")}
+            >
+              Bisa
+            </button>
+            <button
+              type="button"
+              onClick={() => update("bisa_nyupir", false)}
+              className={cn("toggle-pill", state.bisa_nyupir === false && "is-active variant-no")}
+            >
+              Tidak Bisa
+            </button>
+          </div>
+        </Field>
+
+        <Field label="SIM yang Dimiliki" name="sim" icon={IdCard}>
+          <select
+            className="input-field"
+            value={state.sim}
+            onChange={(e) => update("sim", e.target.value)}
+          >
+            <option value="">— Pilih jenis SIM —</option>
+            {SIM_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </Field>
+
+        <Field
+          label="Bersedia Kerja Shift?"
+          required
+          name="bersedia_shift"
+          error={errors.bersedia_shift}
+          hint="Sistem kerja kami menggunakan shift bergantian."
+        >
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => update("bersedia_shift", true)}
+              className={cn("toggle-pill", state.bersedia_shift === true && "is-active")}
+            >
+              Ya, Bersedia
+            </button>
+            <button
+              type="button"
+              onClick={() => update("bersedia_shift", false)}
+              className={cn("toggle-pill", state.bersedia_shift === false && "is-active variant-no")}
+            >
+              Tidak Bersedia
+            </button>
+          </div>
+        </Field>
+
+        <Field
+          label="Bersedia Ditempatkan di Area Jabodetabek?"
+          required
+          name="bersedia_jabodetabek"
+          error={errors.bersedia_jabodetabek}
+          icon={MapPinned}
+        >
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => update("bersedia_jabodetabek", true)}
+              className={cn("toggle-pill", state.bersedia_jabodetabek === true && "is-active")}
+            >
+              Ya, Bersedia
+            </button>
+            <button
+              type="button"
+              onClick={() => update("bersedia_jabodetabek", false)}
+              className={cn("toggle-pill", state.bersedia_jabodetabek === false && "is-active variant-no")}
+            >
+              Tidak Bersedia
+            </button>
+          </div>
+        </Field>
+      </FormSection>
+
+      {/* ─── Section: Lampiran ─── */}
+      <FormSection icon={FileText} title="Lampiran CV (Opsional)" description="Maksimal 2 MB. Format PDF, JPG, atau PNG.">
+        <div data-field="cv">
+          <label className="block">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "border-2 border-dashed rounded-2xl px-6 py-8 text-center cursor-pointer transition-colors",
+                cvFile
+                  ? "border-success/40 bg-success/5"
+                  : errors.cv
+                    ? "border-danger/40 bg-danger/5"
+                    : "border-white/10 hover:border-white/20 hover:bg-white/[0.02]",
+              )}
+            >
+              {cvFile ? (
+                <>
+                  <CheckCircle2 className="w-7 h-7 mx-auto mb-2 text-success" />
+                  <p className="text-sm font-semibold text-white">{cvFile.name}</p>
+                  <p className="text-xs text-white/50 mt-1">
+                    {(cvFile.size / 1024).toFixed(0)} KB · klik untuk ganti
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-7 h-7 mx-auto mb-2 text-white/40" />
+                  <p className="text-sm font-semibold text-white">Klik untuk pilih file CV</p>
+                  <p className="text-xs text-white/50 mt-1">PDF, JPG, atau PNG · maksimal 2 MB</p>
+                </>
+              )}
+            </div>
+          </label>
+          {errors.cv && (
+            <p className="mt-2 text-xs text-danger flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {errors.cv}
+            </p>
+          )}
+        </div>
+      </FormSection>
+
+      {/* Honeypot — tersembunyi untuk anti-bot */}
+      <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", top: 0, opacity: 0, pointerEvents: "none" }}>
+        <label>
+          Jangan diisi
+          <input
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={state.hp_field}
+            onChange={(e) => update("hp_field", e.target.value)}
+          />
+        </label>
+      </div>
+
+      {/* Submit error */}
+      {submitError && (
+        <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span>{submitError}</span>
+        </div>
+      )}
+
+      {/* Submit */}
+      <div className="pt-2">
+        <button
+          type="submit"
+          disabled={isPending}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-semibold text-base text-white transition-all",
+            "bg-gradient-to-r from-blue-600 to-indigo-600",
+            "shadow-lg shadow-blue-500/30",
+            "hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5",
+            "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:transform-none",
+          )}
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Mengirim lamaran...
+            </>
+          ) : (
+            <>
+              Kirim Lamaran
+              <ArrowRight className="w-5 h-5" />
+            </>
+          )}
+        </button>
+        <p className="text-[11px] text-white/40 text-center mt-3">
+          Dengan menekan tombol ini, Anda menyetujui data dipakai untuk proses rekrutmen.
+        </p>
+      </div>
+    </form>
+  );
+}
+
+// ─── Reusable subcomponents ───
+interface FormSectionProps {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}
+
+function FormSection({ icon: Icon, title, description, children }: FormSectionProps) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-3 pb-3 border-b border-white/[0.06]">
+        <div className="w-9 h-9 rounded-xl bg-blue-500/10 ring-1 ring-blue-500/20 flex items-center justify-center flex-shrink-0">
+          <Icon className="w-4 h-4 text-blue-400" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold text-white">{title}</h3>
+          {description && <p className="text-xs text-white/50 mt-0.5">{description}</p>}
+        </div>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </div>
+  );
+}
+
+interface FieldProps {
+  label: string;
+  name: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}
+
+function Field({ label, name, required, error, hint, icon: Icon, children }: FieldProps) {
+  return (
+    <div data-field={name}>
+      <label className="text-xs font-semibold text-white/70 mb-1.5 flex items-center gap-1.5">
+        {Icon && <Icon className="w-3.5 h-3.5 text-white/40" />}
+        {label}
+        {required && <span className="text-danger">*</span>}
+      </label>
+      {children}
+      {error ? (
+        <p className="mt-1 text-[11px] text-danger flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          {error}
+        </p>
+      ) : hint ? (
+        <p className="mt-1 text-[11px] text-white/40">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
