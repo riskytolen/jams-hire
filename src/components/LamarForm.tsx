@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Select from "@/components/Select";
+import DatePicker from "@/components/DatePicker";
 import {
   ALLOWED_CV_TYPES,
   MAX_CV_SIZE_MB,
@@ -268,12 +269,12 @@ export default function LamarForm() {
             }
             icon={Calendar}
           >
-            <input
-              type="date"
-              className={cn("input-field", errors.tanggal_lahir && "has-error")}
+            <DatePicker
               value={state.tanggal_lahir}
-              onChange={(e) => update("tanggal_lahir", e.target.value)}
+              onChange={(val) => update("tanggal_lahir", val)}
               max={new Date().toISOString().slice(0, 10)}
+              placeholder="Pilih tanggal lahir"
+              hasError={!!errors.tanggal_lahir}
             />
           </Field>
 
