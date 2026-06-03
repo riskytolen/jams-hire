@@ -35,6 +35,7 @@
     },
     "@opennextjs/aws": {
       "next": "$next"
-    }
+    },
+    "next": "$next"
   }
 }
