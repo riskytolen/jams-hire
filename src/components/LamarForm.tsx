@@ -524,7 +524,7 @@ export default function LamarForm() {
             File CV / Pas Foto
             <span className="text-danger">*</span>
           </label>
-          <label className="block">
+          <label className="block cursor-pointer">
             <input
               ref={fileInputRef}
               type="file"
@@ -533,7 +533,6 @@ export default function LamarForm() {
               className="hidden"
             />
             <div
-              onClick={() => fileInputRef.current?.click()}
               className={cn(
                 "border-2 border-dashed rounded-xl px-6 py-8 text-center cursor-pointer transition-all",
                 cvFile
