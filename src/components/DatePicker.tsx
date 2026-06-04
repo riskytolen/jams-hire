@@ -162,22 +162,22 @@ export default function DatePicker({
         onClick={() => !disabled && setOpen(!open)}
         className={cn(
           "input-field flex items-center gap-2.5 text-left",
-          !displayText && "text-white/40",
-          disabled && "opacity-50 cursor-not-allowed",
+          !displayText && "text-slate-400",
+          disabled && "opacity-50 cursor-not-allowed bg-slate-50",
           hasError && "has-error",
-          open && "border-blue-700/40 bg-blue-700/[0.06]",
+          open && "border-blue-700/40 bg-blue-50 ring-2 ring-blue-700/10",
         )}
       >
         <Calendar
           className={cn(
             "w-4 h-4 flex-shrink-0",
-            open ? "text-blue-400" : "text-zinc-500",
+            open ? "text-blue-700" : "text-slate-400",
           )}
         />
         <span
           className={cn(
             "flex-1 truncate",
-            displayText ? "text-white font-medium" : "text-white/40",
+            displayText ? "text-slate-900 font-bold" : "text-slate-400 font-medium",
           )}
         >
           {displayText ?? placeholder}
@@ -189,7 +189,7 @@ export default function DatePicker({
         <div
           className={cn(
             "absolute z-50 mt-1.5 w-full max-w-[300px] rounded-xl overflow-hidden",
-            "bg-zinc-900 border border-zinc-800 shadow-2xl shadow-black/60",
+            "bg-white border border-slate-200 shadow-xl shadow-slate-200/50",
             "animate-fade-in p-3",
           )}
         >
@@ -204,7 +204,7 @@ export default function DatePicker({
               </NavBtn>
             </div>
 
-            <span className="text-[13px] font-bold text-white select-none">
+            <span className="text-[13px] font-bold text-slate-900 select-none">
               {BULAN[viewMonth]} {viewYear}
             </span>
 
@@ -223,7 +223,7 @@ export default function DatePicker({
             {HARI.map((h) => (
               <div
                 key={h}
-                className="text-center text-[10px] font-semibold text-zinc-500 uppercase tracking-wide py-1"
+                className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-wide py-1"
               >
                 {h}
               </div>
@@ -246,15 +246,15 @@ export default function DatePicker({
                   className={cn(
                     "relative flex items-center justify-center h-9 text-[12px] font-medium rounded-lg transition-all",
                     // Base
-                    cell.inMonth ? "text-zinc-300" : "text-zinc-600",
+                    cell.inMonth ? "text-slate-700 font-bold" : "text-slate-300 font-medium",
                     // Disabled
-                    dis && "opacity-30 cursor-not-allowed",
+                    dis && "opacity-40 cursor-not-allowed",
                     // Hover (bukan selected, bukan disabled)
-                    !sel && !dis && "hover:bg-white/[0.08]",
+                    !sel && !dis && "hover:bg-slate-100 hover:text-slate-900",
                     // Selected
                     sel && "bg-blue-700 text-white font-bold shadow-md shadow-blue-700/30",
                     // Today ring
-                    today && !sel && "ring-1 ring-blue-400/40",
+                    today && !sel && "ring-2 ring-blue-700/20 text-blue-700",
                   )}
                 >
                   {cell.date.getDate()}
@@ -264,7 +264,7 @@ export default function DatePicker({
           </div>
 
           {/* Quick actions footer */}
-          <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-zinc-800">
+          <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
             <button
               type="button"
               onClick={() => {
@@ -274,7 +274,7 @@ export default function DatePicker({
                   setOpen(false);
                 }
               }}
-              className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+              className="text-[11px] font-bold text-blue-700 hover:text-blue-800 transition-colors"
             >
               Hari ini
             </button>
@@ -285,7 +285,7 @@ export default function DatePicker({
                   onChange("");
                   setOpen(false);
                 }}
-                className="text-[11px] font-semibold text-zinc-500 hover:text-zinc-400 transition-colors"
+                className="text-[11px] font-bold text-slate-400 hover:text-slate-600 transition-colors"
               >
                 Hapus
               </button>
@@ -312,7 +312,7 @@ function NavBtn({
       type="button"
       onClick={onClick}
       title={title}
-      className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors"
+      className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
     >
       {children}
     </button>

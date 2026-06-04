@@ -139,10 +139,10 @@ export default function Select({
         }}
         className={cn(
           "input-field flex items-center justify-between gap-2 text-left",
-          !selected && "text-white/40",
-          disabled && "opacity-50 cursor-not-allowed",
+          !selected && "text-slate-400",
+          disabled && "opacity-50 cursor-not-allowed bg-slate-50",
           hasError && "has-error",
-          open && "border-blue-700/40 bg-blue-700/[0.06]",
+          open && "border-blue-700/40 bg-blue-50 ring-2 ring-blue-700/10",
         )}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -150,15 +150,15 @@ export default function Select({
         <span
           className={cn(
             "truncate",
-            selected ? "text-white font-medium" : "text-white/40",
+            selected ? "text-slate-900 font-bold" : "text-slate-400 font-medium",
           )}
         >
           {selected ? selected.label : placeholder}
         </span>
         <ChevronDown
           className={cn(
-            "w-4 h-4 flex-shrink-0 text-white/40 transition-transform duration-200",
-            open && "rotate-180 text-blue-400",
+            "w-4 h-4 flex-shrink-0 text-slate-400 transition-transform duration-200",
+            open && "rotate-180 text-blue-700",
           )}
         />
       </button>
@@ -168,15 +168,15 @@ export default function Select({
         <div
           className={cn(
             "absolute z-50 mt-1.5 w-full rounded-xl overflow-hidden",
-            "bg-zinc-900 border border-zinc-800 shadow-2xl shadow-black/60",
+            "bg-white border border-slate-200 shadow-xl shadow-slate-200/50",
             "animate-fade-in",
           )}
           role="listbox"
         >
           {/* Search bar (auto-enable) */}
           {isSearchable && (
-            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-zinc-800 bg-zinc-800/30">
-              <Search className="w-3.5 h-3.5 text-white/40 flex-shrink-0" />
+            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 bg-slate-50">
+              <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
               <input
                 ref={searchRef}
                 type="text"
@@ -186,7 +186,7 @@ export default function Select({
                   setHighlightIdx(0);
                 }}
                 placeholder="Cari..."
-                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/30"
+                className="w-full bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400"
               />
             </div>
           )}
@@ -194,7 +194,7 @@ export default function Select({
           {/* Options list */}
           <div ref={listRef} className="max-h-56 overflow-y-auto py-1 custom-scrollbar">
             {filtered.length === 0 ? (
-              <div className="px-3 py-6 text-center text-sm text-white/40">
+              <div className="px-3 py-6 text-center text-sm font-medium text-slate-400">
                 Tidak ditemukan
               </div>
             ) : (
@@ -212,22 +212,22 @@ export default function Select({
                     aria-selected={isSelected}
                     className={cn(
                       "w-full flex items-center justify-between gap-2 px-3 py-2.5 text-sm text-left transition-colors",
-                      isHighlighted && "bg-blue-700/20",
+                      isHighlighted && "bg-slate-50",
                       isSelected
-                        ? "text-blue-300 font-semibold"
-                        : "text-zinc-300",
+                        ? "text-blue-700 font-bold bg-blue-50/50"
+                        : "text-slate-700 font-medium hover:text-slate-900",
                     )}
                   >
                     <div className="min-w-0 flex-1">
                       <span className="block truncate">{option.label}</span>
                       {option.description && (
-                        <span className="block text-[11px] text-white/40 mt-0.5 truncate">
+                        <span className="block text-[11px] font-medium text-slate-400 mt-0.5 truncate">
                           {option.description}
                         </span>
                       )}
                     </div>
                     {isSelected && (
-                      <Check className="w-3.5 h-3.5 flex-shrink-0 text-blue-400" />
+                      <Check className="w-4 h-4 flex-shrink-0 text-blue-600" />
                     )}
                   </button>
                 );
@@ -240,7 +240,7 @@ export default function Select({
       <style jsx>{`
         :global(.custom-scrollbar) {
           scrollbar-width: thin;
-          scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+          scrollbar-color: rgba(15, 23, 42, 0.15) transparent;
         }
         :global(.custom-scrollbar::-webkit-scrollbar) {
           width: 5px;
@@ -249,11 +249,11 @@ export default function Select({
           background: transparent;
         }
         :global(.custom-scrollbar::-webkit-scrollbar-thumb) {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(15, 23, 42, 0.15);
           border-radius: 9999px;
         }
         :global(.custom-scrollbar::-webkit-scrollbar-thumb:hover) {
-          background: rgba(255, 255, 255, 0.18);
+          background: rgba(15, 23, 42, 0.3);
         }
       `}</style>
     </div>

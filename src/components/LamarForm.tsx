@@ -528,27 +528,27 @@ export default function LamarForm() {
             <div
               onClick={() => fileInputRef.current?.click()}
               className={cn(
-                "border-2 border-dashed rounded-2xl px-6 py-8 text-center cursor-pointer transition-colors",
+                "border-2 border-dashed rounded-xl px-6 py-8 text-center cursor-pointer transition-all",
                 cvFile
-                  ? "border-success/40 bg-success/5"
+                  ? "border-emerald-500/40 bg-emerald-50"
                   : errors.cv
-                    ? "border-danger/40 bg-danger/5"
-                    : "border-white/10 hover:border-white/20 hover:bg-white/[0.02]",
+                    ? "border-red-500/40 bg-red-50"
+                    : "border-slate-300 hover:border-blue-400 hover:bg-slate-50",
               )}
             >
               {cvFile ? (
                 <>
-                  <CheckCircle2 className="w-7 h-7 mx-auto mb-2 text-success" />
-                  <p className="text-sm font-semibold text-white">{cvFile.name}</p>
-                  <p className="text-xs text-white/50 mt-1">
+                  <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-500" />
+                  <p className="text-sm font-bold text-slate-900">{cvFile.name}</p>
+                  <p className="text-xs font-medium text-slate-500 mt-1">
                     {(cvFile.size / 1024).toFixed(0)} KB · klik untuk ganti
                   </p>
                 </>
               ) : (
                 <>
-                  <Upload className="w-7 h-7 mx-auto mb-2 text-white/40" />
-                  <p className="text-sm font-semibold text-white">Klik untuk pilih file CV</p>
-                  <p className="text-xs text-white/50 mt-1">PDF, JPG, atau PNG · maksimal 2 MB</p>
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                  <p className="text-sm font-bold text-slate-700">Klik untuk pilih file CV</p>
+                  <p className="text-xs font-medium text-slate-500 mt-1">PDF, JPG, atau PNG · maksimal 2 MB</p>
                 </>
               )}
             </div>
@@ -578,7 +578,7 @@ export default function LamarForm() {
 
       {/* Submit error */}
       {submitError && (
-        <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-danger/8 border border-danger/20 text-danger text-sm">
+          <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <span>{submitError}</span>
         </div>
@@ -591,9 +591,9 @@ export default function LamarForm() {
           disabled={isPending}
           className={cn(
             "w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm text-white transition-all",
-            "bg-gradient-to-r from-blue-700 to-blue-800",
-            "shadow-lg shadow-blue-800/30",
-            "hover:shadow-xl hover:shadow-blue-800/40 hover:-translate-y-0.5",
+            "bg-gradient-to-r from-blue-700 to-blue-900",
+            "shadow-lg shadow-blue-900/20",
+            "hover:shadow-xl hover:shadow-blue-900/30 hover:-translate-y-0.5",
             "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:transform-none",
           )}
         >
@@ -609,7 +609,7 @@ export default function LamarForm() {
             </>
           )}
         </button>
-        <p className="text-[11px] text-zinc-500 text-center mt-3">
+        <p className="text-[11px] font-medium text-slate-400 text-center mt-4">
           Dengan menekan tombol ini, Anda menyetujui data dipakai untuk proses rekrutmen.
         </p>
       </div>
@@ -628,13 +628,13 @@ interface FormSectionProps {
 function FormSection({ icon: Icon, title, description, children }: FormSectionProps) {
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 pb-3 border-b border-zinc-800">
-        <div className="w-8 h-8 rounded-lg bg-blue-700/15 flex items-center justify-center flex-shrink-0">
-          <Icon className="w-3.5 h-3.5 text-blue-400" />
+      <div className="flex items-start gap-3 pb-3 border-b border-slate-200">
+        <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0">
+          <Icon className="w-4 h-4 text-blue-700" />
         </div>
         <div className="min-w-0">
-          <h3 className="text-sm font-bold text-white">{title}</h3>
-          {description && <p className="text-xs text-zinc-500 mt-0.5">{description}</p>}
+          <h3 className="text-sm font-extrabold text-slate-900">{title}</h3>
+          {description && <p className="text-xs font-medium text-slate-500 mt-0.5">{description}</p>}
         </div>
       </div>
       <div className="space-y-4">{children}</div>
@@ -655,8 +655,8 @@ interface FieldProps {
 function Field({ label, name, required, error, hint, icon: Icon, children }: FieldProps) {
   return (
     <div data-field={name}>
-      <label className="text-xs font-semibold text-zinc-400 mb-1.5 flex items-center gap-1.5">
-        {Icon && <Icon className="w-3.5 h-3.5 text-zinc-500" />}
+      <label className="text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+        {Icon && <Icon className="w-3.5 h-3.5 text-slate-400" />}
         {label}
         {required && <span className="text-danger">*</span>}
       </label>
@@ -667,7 +667,7 @@ function Field({ label, name, required, error, hint, icon: Icon, children }: Fie
           {error}
         </p>
       ) : hint ? (
-        <p className="mt-1 text-[11px] text-zinc-500">{hint}</p>
+        <p className="mt-1.5 text-[11px] font-medium text-slate-500">{hint}</p>
       ) : null}
     </div>
   );
